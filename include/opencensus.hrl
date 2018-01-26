@@ -103,3 +103,8 @@
           message :: unicode:unicode_binary()
          }).
 
+
+%% stats types
+
+-type view_data() :: any().
+-type exporter() :: atom().
