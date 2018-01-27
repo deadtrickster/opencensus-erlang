@@ -22,26 +22,26 @@
 -include("opencensus.hrl").
 
 -callback export(ViewData, Config) -> ok when
-    ViewData :: view_data(),
-    Config  :: any().
+      ViewData :: view_data(),
+      Config  :: any().
 
 %% @doc
 %% Register many `Exporters' at once.
 %% @end
 -spec batch_register(Exporters) -> ok when
-    Exporters :: [exporter()].
+      Exporters :: [exporter()].
 batch_register(Exporters) when is_list(Exporters) ->
-  [register(Exporter, Config) || {Exporter, Config} <- Exporters],
-  ok.
+    [register(Exporter, Config) || {Exporter, Config} <- Exporters],
+    ok.
 
 %% @doc
 %% @equiv register(Exporter, [])
 %% @end
 -spec register(Exporter) -> ok when
-    Exporter :: exporter().
+      Exporter :: exporter().
 register(Exporter) ->
-  ets:insert(?MODULE, {Exporter, true}),
-  ok.
+    register(Exporter, []),
+    ok.
 
 %% @doc
 %% Registers an `Exporter' with `Config'.
@@ -51,44 +51,44 @@ register(Exporter) ->
 %% with the previously registered exporter.
 %% @end
 -spec register(Exporter, Config) -> ok when
-    Exporter :: exporter(),
-    Config  :: any().
+      Exporter :: exporter(),
+      Config  :: any().
 register(Exporter, Config) ->
-  ets:insert(?MODULE, {Exporter, Config}),
-  ok.
+    ets:insert(?MODULE, {Exporter, Config}),
+    ok.
 
 %% @doc
 %% Deregisters an `Exporter'.
 %% @end
 -spec deregister(Exporter) -> ok when
-    Exporter :: exporter().
+      Exporter :: exporter().
 deregister(Exporter) ->
-  ets:delete(?MODULE, Exporter).
+    ets:delete(?MODULE, Exporter).
 
 %% @doc
 %% Checks whether `Exporter' is registered.
 %% @end
 -spec registered(Exporter) -> boolean() when
-    Exporter :: exporter().
+      Exporter :: exporter().
 registered(Exporter) ->
-  ets:lookup(?MODULE, Exporter) =/= [].
+    ets:lookup(?MODULE, Exporter) =/= [].
 
 '__init_backend__'() ->
-  ?MODULE = ets:new(?MODULE, [set, named_table, public, {read_concurrency, true}]),
-  ok.
+    ?MODULE = ets:new(?MODULE, [set, named_table, public, {read_concurrency, true}]),
+    ok.
 
 %% @doc
 %% @private
 %% Called by opencensus
 %% @end
 export(Measurements) ->
-  Exporters = ets:tab2list(?MODULE),
-  [try
-     Exporter:export(Measurements, Config)
-   catch
-     Class:Exception ->
-       error_logger:info_msg("stat exporter ~p threw ~p:~p, stacktrace=~p",
-                             [Exporter, Class, Exception, erlang:get_stacktrace()])
-   end
-   || {Exporter, Config} <- Exporters],
-  ok.
+    Exporters = ets:tab2list(?MODULE),
+    [try
+         Exporter:export(Measurements, Config)
+     catch
+         Class:Exception ->
+             error_logger:info_msg("stat exporter ~p threw ~p:~p, stacktrace=~p",
+                                   [Exporter, Class, Exception, erlang:get_stacktrace()])
+     end
+     || {Exporter, Config} <- Exporters],
+    ok.
