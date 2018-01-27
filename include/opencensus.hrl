@@ -118,6 +118,21 @@
           description :: measure_description()
          }).
 
+-type view_name() :: atom() | binary() | string().
+-type view_description() :: binary() | string().
+
+-type tag_key() :: atom().
+-type tag_keys() :: [tag_key()].
+
+
+-record(view, {
+          name        :: view_name(),
+          description :: view_description(),
+          tags        :: tag_keys(),
+          aggrgation  :: atom(),
+          window      :: atom()
+         }).
+
 -type view_data() :: any().
 
 -type exporter() :: atom().

@@ -17,8 +17,8 @@ groups() ->
      {positive, [sequential], [
                                exporter_registration,
                                exporter_conf_registration,
-                               exporter_invocation%% ,
-                               %% full
+                               exporter_invocation,
+                               full
                               ]}
     ].
 
@@ -83,30 +83,39 @@ full(_Config) ->
     ok = oc_stat_measure:new('my.org/measures/video_size_cum', "size of processed video", "Mb"),
 
     %% little helper that declares the view and subscribes it in one call.
-    ok = oc_stat_view:declare_and_subscribe(
+    ok = oc_stat_view:subscribe(
            "video_count",
            "number of videos processed processed over time",
-           [#{tag => value}], %% proplist/map of static tags, I want to add dynamic tags as an extension
+           [#{tag => value},
+            type], %% proplist/map of static tags, I want to add dynamic tags as an extension
            'my.org/measures/video_count',
            oc_stat_count_aggregation, %% or just count?
            oc_stat_cumulative), %% or just cumulative?
 
-    ok = oc_stat_view:declare_and_subscribe(
-           "video_size",
-           "number of videos processed processed over time",
-           [#{tag => value}],
-           'my.org/measures/video_size_cum',
-           {oc_stat_distribution_aggregation, {0, 1 bsl 16, 1 bsl 32}} , %% or just distribution?
-           oc_stat_cumulative), %% or just cumulative?
+    %% ok = oc_stat_view:subscribe(
+    %%        "video_size",
+    %%        "number of videos processed processed over time",
+    %%        [#{tag => value}],
+    %%        'my.org/measures/video_size_cum',
+    %%        {oc_stat_distribution_aggregation, {0, 1 bsl 16, 1 bsl 32}} , %% or just distribution?
+    %%        oc_stat_cumulative), %% or just cumulative?
 
     %% how often reported called
-    oc_stat:set_reporting_period(1000),
+    %% oc_stat:set_reporting_period(1000),
 
     oc_stat:record('my.org/measures/video_count', 1), %% assume ?CONTEXT
-    Size = rand:uniform(1 bsl 63),
-    oc_stat:record('my.org/measures/video_size_cum', Size),
+    %% Size = rand:uniform(1 bsl 63),
+    %% oc_stat:record('my.org/measures/video_size_cum', Size),
 
-    timer:sleep(2000),
+    %% timer:sleep(2000),
 
-    ?assertMatch([{video_count, #{#{tag => value} := 1}},
-                  {video_count, #{#{tag => value} := Size}}], ets:tab2list()).
+    ?assertMatch([#{description :=
+                        "number of videos processed processed over time",
+                    name := "video_count",
+                    rows := [{{"video_count",#{}},1}],
+                    tags := [#{tag := value},type]}], oc_stat:export())
+
+    %% ?assertMatch([{video_count, #{#{tag => value} := 1}} %%,
+    %%               %% {video_count, #{#{tag => value} := Size}}
+    %%              ], ets:tab2list(Tid))
+        .
