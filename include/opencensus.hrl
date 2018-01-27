@@ -106,5 +106,18 @@
 
 %% stats types
 
+-type measure_name() :: atom().
+
+-type measure_unit() :: binary() | string().
+
+-type measure_description() :: binary() | string().
+
+-record(measure, {
+          name        :: measure_name(),
+          unit        :: measure_unit(),
+          description :: measure_description()
+         }).
+
 -type view_data() :: any().
+
 -type exporter() :: atom().

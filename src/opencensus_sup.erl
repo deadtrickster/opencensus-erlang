@@ -34,7 +34,8 @@ init([]) ->
     ok = oc_stat_exporter:'__init_backend__'(),
     StatConf = application:get_env(opencensus, stat, []),
     oc_stat_exporter:batch_register(proplists:get_value(exporters, StatConf, [])),
-    
+    ok = oc_stat_measure:'__init_backend__'(),
+
     Reporter = #{id => oc_reporter,
                  start => {oc_reporter, start_link, []},
                  restart => permanent,
