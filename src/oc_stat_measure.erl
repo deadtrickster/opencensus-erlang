@@ -80,7 +80,7 @@ delete(Name) ->
 %% Returns the registered measure associated with `Name'.
 %% If no registered measure is not found, `false' is returned.
 %% @end
--spec find(Name) -> #measure{} when
+-spec find(Name) -> measure() when
       Name :: measure_name().
 find(Name) ->
     case ets:lookup(?MODULE, Name) of

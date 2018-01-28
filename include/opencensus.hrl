@@ -118,6 +118,8 @@
           description :: measure_description()
          }).
 
+-type measure() :: #measure{}.
+
 -type view_name() :: atom() | binary() | string().
 -type view_description() :: binary() | string().
 
@@ -132,6 +134,8 @@
           aggrgation  :: atom(),
           window      :: atom()
          }).
+
+-type view() :: #view{}.
 
 -type view_data() :: any().
 

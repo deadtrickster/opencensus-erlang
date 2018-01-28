@@ -9,7 +9,7 @@ add_sample(View, Tags, _Value, _Options) ->
     ets:update_counter(?MODULE, {View, Tags}, 1, {{View, Tags}, 0}).
 
 export(View, _Options) ->
-    ets:match_object(?MODULE, {{View, '_'},'_'}).
+    ets:match_object(?MODULE, {{View, '_'}, '_'}).
 
 '__init_backend__'() ->
     ?MODULE = ets:new(?MODULE, [set, named_table, public, {read_concurrency, true}]),
