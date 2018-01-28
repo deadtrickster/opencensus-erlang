@@ -80,7 +80,7 @@ full(_Config) ->
 
     %% register (idempotent) measures, use oc_stat:record to record.
     ok = oc_stat_measure:new('my.org/measures/video_count', "number of processed videos", ""),
-    ok = oc_stat_measure:new('my.org/measures/video_size_cum', "size of processed video", "Mb"),
+    ok = oc_stat_measure:new('my.org/measures/video_size_sum', "size of processed video", "Mb"),
 
     %% little helper that declares the view and subscribes it in one call.
     ok = oc_stat_view:subscribe(
@@ -90,6 +90,15 @@ full(_Config) ->
             type], %% proplist/map of static tags, I want to add dynamic tags as an extension
            'my.org/measures/video_count',
            oc_stat_count_aggregation, %% or just count?
+           oc_stat_cumulative), %% or just cumulative?
+
+    ok = oc_stat_view:subscribe(
+           "video_sum",
+           "video_size_sum",
+           [#{sum_tag => value},
+            type], %% proplist/map of static tags, I want to add dynamic tags as an extension
+           'my.org/measures/video_size_sum',
+           oc_stat_sum_aggregation, %% or just count?
            oc_stat_cumulative), %% or just cumulative?
 
     %% ok = oc_stat_view:subscribe(
@@ -104,15 +113,26 @@ full(_Config) ->
     %% oc_stat:set_reporting_period(1000),
 
     oc_stat:record('my.org/measures/video_count', 1), %% assume ?CONTEXT
+    oc_stat:record('my.org/measures/video_count', 1), %% assume ?CONTEXT
+    oc_stat:record('my.org/measures/video_size_sum', 1024), %% assume ?CONTEXT
+    oc_stat:record('my.org/measures/video_size_sum', 4096), %% assume ?CONTEXT
     %% Size = rand:uniform(1 bsl 63),
     %% oc_stat:record('my.org/measures/video_size_cum', Size),
 
     %% timer:sleep(2000),
 
-    ?assertMatch([#{description :=
+    ?assertMatch([#{name := "video_sum",
+                    description := "video_size_sum",
+                    aggregation := {oc_stat_sum_aggregation,[]},
+                    window := oc_stat_cumulative,
+                    rows := [{{"video_sum",#{}},2,5120}],
+                    tags := [#{sum_tag := value},type]},
+                  #{name := "video_count",
+                    description :=
                         "number of videos processed processed over time",
-                    name := "video_count",
-                    rows := [{{"video_count",#{}},1}],
+                    aggregation := {oc_stat_count_aggregation,[]},
+                    window := oc_stat_cumulative,
+                    rows := [{{"video_count",#{}},2}],
                     tags := [#{tag := value},type]}], oc_stat:export())
 
     %% ?assertMatch([{video_count, #{#{tag => value} := 1}} %%,

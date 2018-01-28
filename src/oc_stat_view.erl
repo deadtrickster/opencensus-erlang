@@ -68,6 +68,8 @@ add_sample(Name, _DesiredTags, Window, Aggregation, Value) ->
 export({_Measure, Name, _, Description, Tags, Aggregation, Window}) ->
     #{name => Name,
       description => Description,
+      aggregation => Aggregation,
+      window => Window,
       tags => Tags,
       rows => Window:export(Name, Aggregation)}.
 
