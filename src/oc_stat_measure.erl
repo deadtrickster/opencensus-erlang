@@ -73,7 +73,8 @@ new(Name, Description, Unit) ->
       Name :: exporter().
 delete(Name) ->
     %% TODO: check registered views
-    ets:delete(?MODULE, Name).
+    ets:delete(?MODULE, Name),
+    ok.
 
 %% @doc
 %% Returns the registered measure associated with `Name'.

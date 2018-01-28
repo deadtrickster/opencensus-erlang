@@ -63,7 +63,8 @@ register(Exporter, Config) ->
 -spec deregister(Exporter) -> ok when
       Exporter :: exporter().
 deregister(Exporter) ->
-    ets:delete(?MODULE, Exporter).
+    ets:delete(?MODULE, Exporter),
+    ok.
 
 %% @doc
 %% Checks whether `Exporter' is registered.
