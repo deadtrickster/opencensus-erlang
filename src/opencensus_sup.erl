@@ -38,6 +38,7 @@ init([]) ->
     ok = oc_stat_view:'__init_backend__'(),
     ok = oc_stat_count_aggregation:'__init_backend__'(),
     ok = oc_stat_sum_aggregation:'__init_backend__'(),
+    ok = oc_stat_distribution_aggregation:'__init_backend__'(),
 
     Reporter = #{id => oc_reporter,
                  start => {oc_reporter, start_link, []},

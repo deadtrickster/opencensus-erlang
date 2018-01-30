@@ -80,7 +80,7 @@ full(_Config) ->
 
     %% register (idempotent) measures, use oc_stat:record to record.
     ok = oc_stat_measure:new('my.org/measures/video_count', "number of processed videos", ""),
-    ok = oc_stat_measure:new('my.org/measures/video_size_sum', "size of processed video", "Mb"),
+    ok = oc_stat_measure:new('my.org/measures/video_size_sum', "size of processed video", "Bytes"),
 
     %% little helper that declares the view and subscribes it in one call.
     ok = oc_stat_view:subscribe(
@@ -101,13 +101,13 @@ full(_Config) ->
            oc_stat_sum_aggregation, %% or just count?
            oc_stat_cumulative), %% or just cumulative?
 
-    %% ok = oc_stat_view:subscribe(
-    %%        "video_size",
-    %%        "number of videos processed processed over time",
-    %%        [#{tag => value}],
-    %%        'my.org/measures/video_size_cum',
-    %%        {oc_stat_distribution_aggregation, {0, 1 bsl 16, 1 bsl 32}} , %% or just distribution?
-    %%        oc_stat_cumulative), %% or just cumulative?
+    ok = oc_stat_view:subscribe(
+           "video_size",
+           "number of videos processed processed over time",
+           [#{tag => value}],
+           'my.org/measures/video_size_sum',
+           {oc_stat_distribution_aggregation, [0, 1 bsl 16, 1 bsl 32]} , %% or just distribution?
+           oc_stat_cumulative), %% or just cumulative?
 
     %% how often reported called
     %% oc_stat:set_reporting_period(1000),
@@ -121,19 +121,24 @@ full(_Config) ->
 
     %% timer:sleep(2000),
 
-    ?assertMatch([#{name := "video_sum",
-                    description := "video_size_sum",
-                    aggregation := {oc_stat_sum_aggregation, []},
-                    window := oc_stat_cumulative,
-                    rows := [{{"video_sum", #{}}, 2, 5120}],
-                    tags := [#{sum_tag := value}, type]},
-                  #{name := "video_count",
-                    description :=
-                        "number of videos processed processed over time",
-                    aggregation := {oc_stat_count_aggregation, []},
-                    window := oc_stat_cumulative,
+    ?assertMatch([#{aggregation := {oc_stat_count_aggregation, []},
+                    description := "number of videos processed processed over time",
+                    name := "video_count",
                     rows := [{{"video_count", #{}}, 2}],
-                    tags := [#{tag := value}, type]}],  oc_stat:export())
+                    tags := [#{tag := value}, type],
+                    window := oc_stat_cumulative},
+                  #{aggregation :=
+                        {oc_stat_distribution_aggregation, [0, 65536, 4294967296]},
+                    description := "number of videos processed processed over time",
+                    name := "video_size",
+                    rows := [{{"video_size", #{}}, 5120, 0, 2, 0}],
+                    tags := [#{tag := value}],
+                    window := oc_stat_cumulative},
+                  #{aggregation := {oc_stat_sum_aggregation, []},
+                    description := "video_size_sum", name := "video_sum",
+                    rows := [{{"video_sum", #{}}, 2, 5120}],
+                    tags := [#{sum_tag := value}, type],
+                    window := oc_stat_cumulative}],  lists:sort(oc_stat:export()))
 
     %% ?assertMatch([{video_count, #{#{tag => value} := 1}} %%,
     %%               %% {video_count, #{#{tag => value} := Size}}

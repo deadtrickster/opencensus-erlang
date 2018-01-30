@@ -20,6 +20,7 @@
 -define(SUBSCRIBED_POS, 3).
 
 register(Name, Description, Tags, Measure, Aggregation, Window) ->
+    %% TODO: check Measure exists?
     register(Name, Description, Tags, Measure, Aggregation, Window, false).
 
 deregister(Name) ->
@@ -29,20 +30,20 @@ subscribe(Name) ->
     ets:update_element(?MODULE, Name, {?SUBSCRIBED_POS, true}).
 
 subscribe(Name, Description, Tags, Measure, Aggregation, Window) ->
+    %% TODO: check Measure exists?
     register(Name, Description, Tags, Measure, Aggregation, Window, true).
 
 register(Name, Description, Tags, Measure, Aggregation, Window, Subscribed) ->
     NAggregation = normalize_aggregation(Aggregation),
-    case ets:insert_new(?MODULE, {Measure, Name, Subscribed, Description, Tags, NAggregation, Window}) of
-        true ->
-            ok;
+    case ets:match_object(?MODULE, {Measure, Name, '_', '_', '_', '_', '_'}) of
+        [{Measure, Name, '_', Description, Tags, NAggregation, Window}] ->
+            ets:update_element(?MODULE, Name, {?SUBSCRIBED_POS, Subscribed});
+        [_] ->
+            erlang:error({already_exists, Name});
         _ ->
-            case ets:lookup_element(?MODULE, Name, ?NAME_POS) of
-                [{Measure, Name, _, Description, Tags, NAggregation, Window}] ->
-                    ok;
-                _ -> erlang:error(already_exists)
-            end
-    end.
+            ets:insert(?MODULE, {Measure, Name, Subscribed, Description, Tags, NAggregation, Window})
+    end,
+    ok.
 
 unsubscribe(Name) ->
     ets:update_element(?MODULE, Name, {?SUBSCRIBED_POS, false}).
@@ -59,7 +60,7 @@ measure_views(Measure) ->
     ets:lookup(?MODULE, Measure).
 
 subscribed() ->
-    ets:match_object(oc_stat_view, {'_', '_', true, '_', '_', '_', '_'}).
+    ets:match_object(?MODULE, {'_', '_', true, '_', '_', '_', '_'}).
 
 add_sample(Name, _DesiredTags, Window, Aggregation, Value) ->
     Tags = #{}, %% TODO: use tags from ?CONTEXT
