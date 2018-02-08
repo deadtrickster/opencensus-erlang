@@ -68,17 +68,17 @@ subscribed() ->
     ets:match_object(?MODULE, {'_', '_', true, '_', '_', '_'}).
 
 add_sample({_Measure, Name, _Subscribed, _Description, ViewTags, Aggregation}, ContextTags, Value) ->
-    {CTags, Keys} = ViewTags,
-    Tags = maps:merge(maps:with(Keys, ContextTags), CTags),
+    {_, Keys} = ViewTags,
+    Tags = maps:with(Keys, ContextTags),
     {AggregationModule, AggregationOptions} = Aggregation,
     AggregationModule:add_sample(Name, Tags, Value, AggregationOptions).
 
-export({_Measure, Name, _, Description, Tags, Aggregation}) ->
+export({_Measure, Name, _, Description, ViewTags, Aggregation}) ->
     {AggregationModule, AggregationOptions} = Aggregation,
     #{name => Name,
       description => Description,
       aggregation => Aggregation,
-      tags => Tags,
+      tags => ViewTags,
       rows => AggregationModule:export(Name, AggregationOptions)}.
 
 normalize_aggregation({Module, Options}) ->

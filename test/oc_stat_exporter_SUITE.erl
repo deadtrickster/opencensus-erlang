@@ -117,17 +117,17 @@ full(_Config) ->
     ?assertMatch([#{aggregation := {oc_stat_count_aggregation, []},
                     description := "number of videos processed processed over time",
                     name := "video_count",
-                    rows := [{{"video_count", #{ctag := value, type := "mpeg"}}, 2}],
+                    rows := [{{"video_count", #{type := "mpeg"}}, 2}],
                     tags := {#{ctag := value}, [type]}},
                   #{aggregation :=
                         {oc_stat_distribution_aggregation, [0, 65536, 4294967296]},
                     description := "number of videos processed processed over time",
                     name := "video_size",
-                    rows := [{{"video_size", #{ctag := value}}, 5120, 0, 2, 0}],
+                    rows := [{{"video_size", #{}}, 5120, 0, 2, 0}],
                     tags := {#{ctag := value}, []}},
                   #{aggregation := {oc_stat_sum_aggregation, []},
                     description := "video_size_sum", name := "video_sum",
-                    rows := [{{"video_sum", #{category := "category1", sum_tag := value, type := "mpeg"}}, 2, 5120}],
+                    rows := [{{"video_sum", #{category := "category1", type := "mpeg"}}, 2, 5120}],
                     tags := {#{sum_tag := value}, [type, category]}}],  lists:sort(oc_stat:export()))
 
     %% ?assertMatch([{video_count, #{#{tag => value} := 1}} %%,
