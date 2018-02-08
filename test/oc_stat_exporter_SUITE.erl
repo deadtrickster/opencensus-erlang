@@ -78,15 +78,11 @@ full(_Config) ->
     %% second argument is exporter options.
     oc_stat_exporter:register(ets_exporter, [{table, Tid}]),
 
-    %% register (idempotent) measures, use oc_stat:record to record.
-    ok = oc_stat_measure:new('my.org/measures/video_count', "number of processed videos", ""),
-    ok = oc_stat_measure:new('my.org/measures/video_size_sum', "size of processed video", "Bytes"),
-
     %% little helper that declares the view and subscribes it in one call.
     ok = oc_stat_view:subscribe(
            "video_count",
            "number of videos processed processed over time",
-           [#{tag => value},
+           [#{ctag => value},
             type], %% proplist/map of static tags, I want to add dynamic tags as an extension
            'my.org/measures/video_count',
            oc_stat_count_aggregation), %% or just count?
@@ -95,24 +91,24 @@ full(_Config) ->
            "video_sum",
            "video_size_sum",
            [#{sum_tag => value},
-            type], %% proplist/map of static tags, I want to add dynamic tags as an extension
+            type, category], %% proplist/map of static tags, I want to add dynamic tags as an extension
            'my.org/measures/video_size_sum',
            oc_stat_sum_aggregation), %% or just count?
 
     ok = oc_stat_view:subscribe(
            "video_size",
            "number of videos processed processed over time",
-           [#{tag => value}],
+           [#{ctag => value}],
            'my.org/measures/video_size_sum',
            {oc_stat_distribution_aggregation, [0, 1 bsl 16, 1 bsl 32]}), %% or just distribution?
 
     %% how often reported called
     %% oc_stat:set_reporting_period(1000),
 
-    oc_stat:record('my.org/measures/video_count', 1), %% assume ?CONTEXT
-    oc_stat:record('my.org/measures/video_count', 1), %% assume ?CONTEXT
-    oc_stat:record('my.org/measures/video_size_sum', 1024), %% assume ?CONTEXT
-    oc_stat:record('my.org/measures/video_size_sum', 4096), %% assume ?CONTEXT
+    oc_stat:record('my.org/measures/video_count', #{type=>"mpeg", category=>"category1"}, 1), %% assume ?CONTEXT
+    oc_stat:record('my.org/measures/video_count', #{type=>"mpeg", category=>"category1"}, 1), %% assume ?CONTEXT
+    oc_stat:record('my.org/measures/video_size_sum', #{type=>"mpeg", category=>"category1"}, 1024), %% assume ?CONTEXT
+    oc_stat:record('my.org/measures/video_size_sum', #{type=>"mpeg", category=>"category1"}, 4096), %% assume ?CONTEXT
     %% Size = rand:uniform(1 bsl 63),
     %% oc_stat:record('my.org/measures/video_size_cum', Size),
 
@@ -121,18 +117,18 @@ full(_Config) ->
     ?assertMatch([#{aggregation := {oc_stat_count_aggregation, []},
                     description := "number of videos processed processed over time",
                     name := "video_count",
-                    rows := [{{"video_count", #{}}, 2}],
-                    tags := [#{tag := value}, type]},
+                    rows := [{{"video_count", #{ctag := value, type := "mpeg"}}, 2}],
+                    tags := {#{ctag := value}, [type]}},
                   #{aggregation :=
                         {oc_stat_distribution_aggregation, [0, 65536, 4294967296]},
                     description := "number of videos processed processed over time",
                     name := "video_size",
-                    rows := [{{"video_size", #{}}, 5120, 0, 2, 0}],
-                    tags := [#{tag := value}]},
+                    rows := [{{"video_size", #{ctag := value}}, 5120, 0, 2, 0}],
+                    tags := {#{ctag := value}, []}},
                   #{aggregation := {oc_stat_sum_aggregation, []},
                     description := "video_size_sum", name := "video_sum",
-                    rows := [{{"video_sum", #{}}, 2, 5120}],
-                    tags := [#{sum_tag := value}, type]}],  lists:sort(oc_stat:export()))
+                    rows := [{{"video_sum", #{category := "category1", sum_tag := value, type := "mpeg"}}, 2, 5120}],
+                    tags := {#{sum_tag := value}, [type, category]}}],  lists:sort(oc_stat:export()))
 
     %% ?assertMatch([{video_count, #{#{tag => value} := 1}} %%,
     %%               %% {video_count, #{#{tag => value} := Size}}

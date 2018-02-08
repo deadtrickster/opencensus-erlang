@@ -4,12 +4,13 @@
          deregister/1,
          subscribe/1,
          subscribe/5,
+         subscribed/1,
          unsubscribe/1,
          registered/1]).
 
 -export([measure_views/1,
          subscribed/0,
-         add_sample/4,
+         add_sample/3,
          export/1]).
 
 -export(['__init_backend__'/0]).
@@ -35,13 +36,14 @@ subscribe(Name, Description, Tags, Measure, Aggregation) ->
 
 register(Name, Description, Tags, Measure, Aggregation, Subscribed) ->
     NAggregation = normalize_aggregation(Aggregation),
+    NTags = normalize_tags(Tags),
     case ets:match_object(?MODULE, {Measure, Name, '_', '_', '_', '_'}) of
-        [{Measure, Name, '_', Description, Tags, NAggregation}] ->
+        [{Measure, Name, '_', Description, NTags, NAggregation}] ->
             ets:update_element(?MODULE, Name, {?SUBSCRIBED_POS, Subscribed});
         [_] ->
             erlang:error({already_exists, Name});
         _ ->
-            ets:insert(?MODULE, {Measure, Name, Subscribed, Description, Tags, NAggregation})
+            ets:insert(?MODULE, {Measure, Name, Subscribed, Description, NTags, NAggregation})
     end,
     ok.
 
@@ -59,11 +61,15 @@ registered(Name) ->
 measure_views(Measure) ->
     ets:lookup(?MODULE, Measure).
 
+subscribed({_Measure, _Name, Subscribed, _Description, _Tags, _Aggregation}) ->
+    Subscribed.
+
 subscribed() ->
     ets:match_object(?MODULE, {'_', '_', true, '_', '_', '_'}).
 
-add_sample(Name, _DesiredTags, Aggregation, Value) ->
-    Tags = #{}, %% TODO: use tags from ?CONTEXT
+add_sample({_Measure, Name, _Subscribed, _Description, ViewTags, Aggregation}, ContextTags, Value) ->
+    {CTags, Keys} = ViewTags,
+    Tags = maps:merge(maps:with(Keys, ContextTags), CTags),
     {AggregationModule, AggregationOptions} = Aggregation,
     AggregationModule:add_sample(Name, Tags, Value, AggregationOptions).
 
@@ -79,6 +85,18 @@ normalize_aggregation({Module, Options}) ->
     {Module, Options};
 normalize_aggregation(Module) when is_atom(Module) ->
     {Module, []}.
+
+normalize_tags([]) ->
+    {#{}, []};
+normalize_tags(Tags) ->
+    normalize_tags(Tags, {#{}, []}).
+
+normalize_tags([], {Map, List}) ->
+    {Map, lists:reverse(List)};
+normalize_tags([First|Rest], {Map, List}) when is_map(First) ->
+    normalize_tags(Rest, {maps:merge(Map, First), List});
+normalize_tags([First|Rest], {Map, List}) when is_atom(First) ->
+    normalize_tags(Rest, {Map, [First | List]}).
 
 '__init_backend__'() ->
     ?MODULE = ets:new(?MODULE, [bag, named_table, public, {read_concurrency, true}]),
