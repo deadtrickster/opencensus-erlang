@@ -5,8 +5,8 @@
 
 record(Measure, Value) ->
     %% TODO: do not expose oc_stat_view internals here
-    [oc_stat_view:add_sample(Name, Tags, Window, Aggregation, Value)
-     || {_Measure, Name, Subscribed, _Description, Tags, Aggregation, Window}
+    [oc_stat_view:add_sample(Name, Tags, Aggregation, Value)
+     || {_Measure, Name, Subscribed, _Description, Tags, Aggregation}
             <- oc_stat_view:measure_views(Measure), Subscribed].
 
 export() ->
