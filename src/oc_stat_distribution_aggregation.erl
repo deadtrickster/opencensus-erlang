@@ -1,12 +1,16 @@
 -module(oc_stat_distribution_aggregation).
 
--export([add_sample/4,
+-export([init/4,
+         add_sample/4,
          export/2]).
 
 -export(['__init_backend__'/0]).
 
 -define(SUM_POS, 2).
 -define(BUCKETS_POS, 3).
+
+init(_Name, _Description, _Keys, Options) ->
+    Options.
 
 %% TODO: add +infinity bound implicitly
 add_sample(View, Tags, Value, Buckets) ->

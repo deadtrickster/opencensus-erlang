@@ -1,9 +1,13 @@
 -module(oc_stat_count_aggregation).
 
--export([add_sample/4,
+-export([init/4,
+         add_sample/4,
          export/2]).
 
 -export(['__init_backend__'/0]).
+
+init(_Name, _Description, _Keys, Options) ->
+    Options.
 
 add_sample(View, Tags, _Value, _Options) ->
     ets:update_counter(?MODULE, {View, Tags}, 1, {{View, Tags}, 0}).

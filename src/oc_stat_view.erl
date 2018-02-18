@@ -43,7 +43,14 @@ register(Name, Description, Tags, Measure, Aggregation, Subscribed) ->
         [_] ->
             erlang:error({already_exists, Name});
         _ ->
-            ets:insert(?MODULE, {Measure, Name, Subscribed, Description, NTags, NAggregation})
+            {AggregationModule, AggregationOptions} = NAggregation,
+            {CTags, Keys} = NTags,
+            %% TODO: transaction?
+            %% HACK: Keys reversed because tag_value reverses
+            NAggregationOptions = AggregationModule:init(Name, Description,
+                                                         {CTags, lists:reverse(Keys)}, AggregationOptions),
+            ets:insert(?MODULE, {Measure, Name, Subscribed, Description, NTags,
+                                 {AggregationModule, NAggregationOptions}})
     end,
     ok.
 
@@ -69,16 +76,17 @@ subscribed() ->
 
 add_sample({_Measure, Name, _Subscribed, _Description, ViewTags, Aggregation}, ContextTags, Value) ->
     {_, Keys} = ViewTags,
-    Tags = maps:with(Keys, ContextTags),
+    TagValues = tag_values(ContextTags, Keys),
     {AggregationModule, AggregationOptions} = Aggregation,
-    AggregationModule:add_sample(Name, Tags, Value, AggregationOptions).
+    AggregationModule:add_sample(Name, TagValues, Value, AggregationOptions).
 
 export({_Measure, Name, _, Description, ViewTags, Aggregation}) ->
     {AggregationModule, AggregationOptions} = Aggregation,
+    {STags, Keys} = ViewTags,
     #{name => Name,
       description => Description,
       aggregation => Aggregation,
-      tags => ViewTags,
+      tags => {STags, lists:reverse(Keys)},
       rows => AggregationModule:export(Name, AggregationOptions)}.
 
 normalize_aggregation({Module, Options}) ->
@@ -97,6 +105,11 @@ normalize_tags([First|Rest], {Map, List}) when is_map(First) ->
     normalize_tags(Rest, {maps:merge(Map, First), List});
 normalize_tags([First|Rest], {Map, List}) when is_atom(First) ->
     normalize_tags(Rest, {Map, [First | List]}).
+
+tag_values(Tags, Keys) ->
+    lists:foldl(fun(Key, Acc) ->
+                        [maps:get(Key, Tags, undefined) | Acc]
+                end, [], Keys).
 
 '__init_backend__'() ->
     ?MODULE = ets:new(?MODULE, [bag, named_table, public, {read_concurrency, true}]),
