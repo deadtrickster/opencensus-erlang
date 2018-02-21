@@ -31,14 +31,18 @@ start_link() ->
 
 init([]) ->
     ok = oc_sampler:init(application:get_env(opencensus, sampler, {oc_sampler_always, []})),
+
     ok = oc_stat_exporter:'__init_backend__'(),
-    StatConf = application:get_env(opencensus, stat, []),
-    oc_stat_exporter:batch_register(proplists:get_value(exporters, StatConf, [])),
     ok = oc_stat_measure:'__init_backend__'(),
     ok = oc_stat_view:'__init_backend__'(),
     ok = oc_stat_count_aggregation:'__init_backend__'(),
     ok = oc_stat_sum_aggregation:'__init_backend__'(),
     ok = oc_stat_distribution_aggregation:'__init_backend__'(),
+    ok = oc_stat_latest_aggregation:'__init_backend__'(),
+
+    StatConf = application:get_env(opencensus, stat, []),
+    oc_stat_exporter:batch_register(proplists:get_value(exporters, StatConf, [])),
+    oc_stat_view:batch_subscribe(proplists:get_value(views, StatConf, [])),
 
     Reporter = #{id => oc_reporter,
                  start => {oc_reporter, start_link, []},

@@ -16,5 +16,5 @@ export(View, _Options) ->
     ets:match_object(?MODULE, {{View, '_'}, '_'}).
 
 '__init_backend__'() ->
-    ?MODULE = ets:new(?MODULE, [set, named_table, public, {read_concurrency, true}]),
+    ?MODULE = ets:new(?MODULE, [set, named_table, public, {write_concurrency, true}]),
     ok.

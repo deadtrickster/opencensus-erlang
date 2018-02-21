@@ -4,6 +4,7 @@
          deregister/1,
          subscribe/1,
          subscribe/5,
+         batch_subscribe/1,
          subscribed/1,
          unsubscribe/1,
          registered/1]).
@@ -27,12 +28,22 @@ register(Name, Description, Tags, Measure, Aggregation) ->
 deregister(Name) ->
     ets:delete(?MODULE, Name).
 
+subscribe(#{name := Name, description := Description, tags := Tags,
+            measure := Measure, aggregation := Aggregation}) ->
+    subscribe(Name, Description, Tags, Measure, Aggregation);
 subscribe(Name) ->
     ets:update_element(?MODULE, Name, {?SUBSCRIBED_POS, true}).
 
 subscribe(Name, Description, Tags, Measure, Aggregation) ->
     %% TODO: check Measure exists?
     register(Name, Description, Tags, Measure, Aggregation, true).
+
+%% @doc
+%% Subscribe many `Views' at once.
+%% @end
+batch_subscribe(Views) when is_list(Views) ->
+    [ok = subscribe(View) || View <- Views],
+    ok.
 
 register(Name, Description, Tags, Measure, Aggregation, Subscribed) ->
     NAggregation = normalize_aggregation(Aggregation),

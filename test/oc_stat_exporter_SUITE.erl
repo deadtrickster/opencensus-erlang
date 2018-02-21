@@ -33,6 +33,18 @@ init_per_testcase(exporter_conf_registration, Config) ->
     application:set_env(opencensus, stat, [{exporters, [{?MODULE, []}]}]),
     {ok, _} = application:ensure_all_started(opencensus),
     Config;
+init_per_testcase(full, Config) ->
+    Views = [#{
+                name => "video_size",
+                description => "number of videos processed processed over time",
+                tags => [#{ctag => value}],
+                measure => 'my.org/measures/video_size_sum',
+                aggregation => {oc_stat_distribution_aggregation, [0, 1 bsl 16, 1 bsl 32]}
+              }],
+
+    application:set_env(opencensus, stat, [{views, Views}]),
+    {ok, _} = application:ensure_all_started(opencensus),
+    Config;
 init_per_testcase(_Name, Config) ->
     {ok, _} = application:ensure_all_started(opencensus),
     Config.
@@ -75,32 +87,30 @@ full(_Config) ->
 
     Tid = ets:new(ets_exporter_table, [set, private]),
 
-    %% second argument is exporter options.
     oc_stat_exporter:register(ets_exporter, [{table, Tid}]),
 
-    %% little helper that declares the view and subscribes it in one call.
     ok = oc_stat_view:subscribe(
            "video_count",
            "number of videos processed processed over time",
            [#{ctag => value},
-            type], %% proplist/map of static tags, I want to add dynamic tags as an extension
+            type],
            'my.org/measures/video_count',
-           oc_stat_count_aggregation), %% or just count?
+           oc_stat_count_aggregation),
 
     ok = oc_stat_view:subscribe(
            "video_sum",
            "video_size_sum",
            [#{sum_tag => value},
-            type, category], %% proplist/map of static tags, I want to add dynamic tags as an extension
+            type, category],
            'my.org/measures/video_size_sum',
-           oc_stat_sum_aggregation), %% or just count?
+           oc_stat_sum_aggregation),
 
     ok = oc_stat_view:subscribe(
-           "video_size",
-           "number of videos processed processed over time",
+           "last_video_size",
+           "last processed video size",
            [#{ctag => value}],
            'my.org/measures/video_size_sum',
-           {oc_stat_distribution_aggregation, [0, 1 bsl 16, 1 bsl 32]}), %% or just distribution?
+           oc_stat_latest_aggregation),
 
     %% how often reported called
     %% oc_stat:set_reporting_period(1000),
@@ -117,18 +127,23 @@ full(_Config) ->
     ?assertMatch([#{aggregation := {oc_stat_count_aggregation, []},
                     description := "number of videos processed processed over time",
                     name := "video_count",
-                    rows := [{{"video_count", #{type := "mpeg"}}, 2}],
+                    rows := [{{"video_count", ["mpeg"]}, 2}],
                     tags := {#{ctag := value}, [type]}},
                   #{aggregation :=
                         {oc_stat_distribution_aggregation, [0, 65536, 4294967296]},
                     description := "number of videos processed processed over time",
                     name := "video_size",
-                    rows := [{{"video_size", #{}}, 5120, 0, 2, 0}],
+                    rows := [{{"video_size", []}, 5120, 0, 2, 0}],
                     tags := {#{ctag := value}, []}},
+                  #{aggregation := {oc_stat_latest_aggregation,[]},
+                    description := "last processed video size",
+                    name := "last_video_size",
+                    rows := [{{"last_video_size",[]},4096}],
+                    tags := {#{ctag := value},[]}},
                   #{aggregation := {oc_stat_sum_aggregation, []},
                     description := "video_size_sum", name := "video_sum",
-                    rows := [{{"video_sum", #{category := "category1", type := "mpeg"}}, 2, 5120}],
-                    tags := {#{sum_tag := value}, [type, category]}}],  lists:sort(oc_stat:export()))
+                    rows := [{{"video_sum", ["category1", "mpeg"]}, 2, 5120}],
+                    tags := {#{sum_tag := value}, [category, type]}}],  lists:sort(oc_stat:export()))
 
     %% ?assertMatch([{video_count, #{#{tag => value} := 1}} %%,
     %%               %% {video_count, #{#{tag => value} := Size}}

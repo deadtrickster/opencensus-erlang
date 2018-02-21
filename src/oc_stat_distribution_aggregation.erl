@@ -59,5 +59,5 @@ position([H|L], Pred, Pos) ->
     end.
 
 '__init_backend__'() ->
-    ?MODULE = ets:new(?MODULE, [set, named_table, public, {read_concurrency, true}]),
+    ?MODULE = ets:new(?MODULE, [set, named_table, public, {write_concurrency, true}]),
     ok.
